@@ -39,7 +39,9 @@ def run(config):
         valid_loader = DataLoader(valid_dataset, batch_size=config.encodings_batch_size)
 
         clf_solver = CESolver(clf, train_loader, valid_loader, config.save_root, name=config.name+'-clf', device=config.device)
-        clf = clf_solver.train(config.encodings_num_epochs)
+        clf_solver.train(config.encodings_num_epochs)
+        clf_filename = os.path.join(config.save_root, f'{config.name}-clf.pth')
+        clf.load_state_dict(torch.load(clf_filename, map_location=config.device))
 
     full = FineTuner(model, clf)
 

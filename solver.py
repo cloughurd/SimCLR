@@ -59,7 +59,6 @@ class CESolver:
 
         self.save(model, min_val_loss, 'final')
         print(f'Training completed with max validation accuracy of {max_val_acc}')
-        return model
     
     def validate(self, model, objective):
         model.eval()
