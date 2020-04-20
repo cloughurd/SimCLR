@@ -5,6 +5,7 @@ import torch.nn as nn
 import torchvision.transforms as T
 from torch.utils.data import DataLoader
 from data_aug.stanfordcars import StanfordCarsMini, CarsDataset
+from classification_loaders.encodedsc import EncodedStanfordCarsDataset
 from models.resnet_simclr import ResNetSimCLR
 from solver import CESolver
 
@@ -24,9 +25,23 @@ def run(config):
     model.load_state_dict(torch.load(config.model_file, map_location=config.device))
     model = model.to(config.device)
     clf = nn.Linear(2048, 196)
+
+    train_data_dir = os.path.join(config.data_root, 'cars_train/')
+    train_annos = os.path.join(config.data_root, 'devkit/cars_train_annos.mat')
+    valid_data_dir = os.path.join(config.data_root, 'cars_test/')
+    valid_annos = os.path.join(config.data_root, 'devkit/cars_test_annos_withlabels.mat')
+
+    if config.encodings_file_prefix:
+        train_dataset = EncodedStanfordCarsDataset(train_annos, config.encodings_file_prefix + '-train_encodings.pt')
+        train_loader = DataLoader(train_dataset, batch_size=config.encodings_batch_size, shuffle=True)
+
+        valid_dataset = EncodedStanfordCarsDataset(valid_annos, config.encodings_file_prefix + '-valid_encodings.pt')
+        valid_loader = DataLoader(valid_dataset, batch_size=config.encodings_batch_size)
+
+        clf_solver = CESolver(clf, train_loader, valid_loader, config.save_root, name=config.name+'-clf', device=config.device)
+        clf = clf_solver.train(config.encodings_num_epochs)
+
     full = FineTuner(model, clf)
-    optim = torch.optim.Adam(list(model.parameters()) + list(clf.parameters()))
-    objective = nn.CrossEntropyLoss()
 
     t = T.Compose([
             T.Resize(512),
@@ -34,13 +49,9 @@ def run(config):
             T.ToTensor(),
             T.Lambda(lambda x: x.repeat(3,1,1) if x.shape[0] == 1 else x)
         ])
-    train_data_dir = os.path.join(config.data_root, 'cars_train/')
-    train_annos = os.path.join(config.data_root, 'devkit/cars_train_annos.mat')
     train_dataset = StanfordCarsMini(train_annos, train_data_dir, t)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
 
-    valid_data_dir = os.path.join(config.data_root, 'cars_test/')
-    valid_annos = os.path.join(config.data_root, 'devkit/cars_test_annos_withlabels.mat')
     valid_dataset = CarsDataset(valid_annos, valid_data_dir, t)
     valid_loader = DataLoader(valid_dataset, batch_size=config.batch_size)
 
@@ -57,6 +68,9 @@ if __name__ == '__main__':
     parser.add_argument('--out_dim', type=int, default=256, help='dimension of projection')
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--name', type=str, default='SCMTuned')
+    parser.add_argument('--encodings_file_prefix', type=str, default='./encodings/stanfordCars-scmodel')
+    parser.add_argument('--encodings_batch_size', type=int, default=100)
+    parser.add_argument('--encodings_num_epochs', type=int, default=160)
 
     args = parser.parse_args()
     run(args)
