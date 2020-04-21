@@ -4,3 +4,4 @@ checkpoints
 encodings
 *.pth
 .DS_Store
+.ipynb_checkpoints
