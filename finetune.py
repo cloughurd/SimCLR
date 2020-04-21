@@ -59,9 +59,9 @@ def run(config):
     valid_loader = DataLoader(valid_dataset, batch_size=config.batch_size)
 
     solver = CESolver(full, train_loader, valid_loader, config.save_root, name=config.name, device=config.device)
-    full = full.to(config.device)
-    print(solver.validate(full, nn.CrossEntropyLoss()))
-    # solver.train(config.num_epochs)
+    # full = full.to(config.device)
+    # print(solver.validate(full, nn.CrossEntropyLoss()))
+    solver.train(config.num_epochs)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
