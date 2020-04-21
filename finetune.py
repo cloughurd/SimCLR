@@ -38,7 +38,8 @@ def run(config):
         valid_dataset = EncodedStanfordCarsDataset(valid_annos, config.encodings_file_prefix + '-valid_encodings.pt')
         valid_loader = DataLoader(valid_dataset, batch_size=config.encodings_batch_size)
 
-        clf_solver = CESolver(clf, train_loader, valid_loader, config.save_root, name=config.name+'-clf', device=config.device)
+        tmp_clf = nn.Linear(2048, 196)
+        clf_solver = CESolver(tmp_clf, train_loader, valid_loader, config.save_root, name=config.name+'-clf', device=config.device)
         clf_solver.train(config.encodings_num_epochs)
         clf_filename = os.path.join(config.save_root, f'{config.name}-clf.pth')
         clf.load_state_dict(torch.load(clf_filename, map_location=config.device))
@@ -58,7 +59,9 @@ def run(config):
     valid_loader = DataLoader(valid_dataset, batch_size=config.batch_size)
 
     solver = CESolver(full, train_loader, valid_loader, config.save_root, name=config.name, device=config.device)
-    solver.train(config.num_epochs)
+    full = full.to(config.device)
+    print(solver.validate(full, nn.CrossEntropyLoss()))
+    # solver.train(config.num_epochs)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
