@@ -29,7 +29,7 @@ class CESolver:
         min_val_loss = float('inf')
         max_val_acc = 0
         for e in range(num_epochs):
-            loop = tqdm(total=len(self.train_loader))
+            loop = tqdm(total=len(self.train_loader), position=0, leave=False)
             for x, y in self.train_loader:
                 x = x.to(self.device)
                 y = y.to(self.device).squeeze(1)
