@@ -2,6 +2,7 @@ import os
 import json
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 
 class CESolver:
     def __init__(self, model, train_loader, valid_loader, save_root, name='CESolver', device='cuda:0'):
@@ -21,13 +22,14 @@ class CESolver:
         objective = nn.CrossEntropyLoss()
         optim = torch.optim.Adam(model.parameters())
         sched = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[
-                                                        int(num_epochs * 0.25),
+                                                        int(num_epochs * 0.3),
                                                         int(num_epochs * 0.5),
-                                                        int(num_epochs * 0.75)])
+                                                        int(num_epochs * 0.8)])
         
         min_val_loss = float('inf')
         max_val_acc = 0
         for e in range(num_epochs):
+            loop = tqdm(total=len(self.train_loader))
             for x, y in self.train_loader:
                 x = x.to(self.device)
                 y = y.to(self.device).squeeze(1)
@@ -38,8 +40,11 @@ class CESolver:
                 loss.backward()
                 optim.step()
 
+                acc = accuracy(y_hat, y)
                 self.train_loss.append(loss.item())
                 self.train_acc.append(accuracy(y_hat, y))
+                loop.update(1)
+                loop.set_description(f'Epoch: {e}, Loss: {loss.item()}, Accuracy: {acc}')
 
             if e % val_freq == 0:
                 vl, va = self.validate(model, objective)
@@ -49,7 +54,7 @@ class CESolver:
                     min_val_loss = vl
                     self.save(model, vl, e)
         
-        sched.step()
+            sched.step()
         if (num_epochs-1) % val_freq != 0:
             vl, va = self.validate(model, objective)
             if va > max_val_acc:
