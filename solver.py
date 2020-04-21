@@ -87,7 +87,9 @@ class CESolver:
 
     def save(self, model, vl, e):
         print(f'Saving {self.name} at epoch {e} with validation loss {vl}')
-        model_file = os.path.join(self.save_root, f'{self.name}.pth')
+        if e == 'final':
+            name = self.name = '-final'
+        model_file = os.path.join(self.save_root, f'{name}.pth')
         torch.save(model.state_dict(), model_file)
         loss_file = os.path.join(self.save_root, f'{self.name}.json')
         json.dump({
