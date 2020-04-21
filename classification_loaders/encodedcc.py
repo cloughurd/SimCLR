@@ -34,7 +34,7 @@ class CompCars(Dataset):
             label = int(i.split('/')[1]) - 1
         elif self.label_type in self.attributes:
             model = int(i.split('/')[1])
-            row = self.attributes[model]
+            row = self.attributes.loc[model]
             label = row[self.label_type]
         else:
             label = -1
