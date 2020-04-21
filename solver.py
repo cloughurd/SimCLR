@@ -29,6 +29,14 @@ class CESolver:
         min_val_loss = float('inf')
         max_val_acc = 0
         for e in range(num_epochs):
+            if e % val_freq == 0:
+                vl, va = self.validate(model, objective)
+                if va > max_val_acc:
+                    max_val_acc = va
+                if vl < min_val_loss:
+                    min_val_loss = vl
+                    self.save(model, vl, e)
+
             loop = tqdm(total=len(self.train_loader), position=0, leave=False)
             for x, y in self.train_loader:
                 x = x.to(self.device)
@@ -45,16 +53,9 @@ class CESolver:
                 self.train_acc.append(accuracy(y_hat, y))
                 loop.update(1)
                 loop.set_description(f'Epoch: {e}, Loss: {loss.item()}, Accuracy: {acc}')
-
-            if e % val_freq == 0:
-                vl, va = self.validate(model, objective)
-                if va > max_val_acc:
-                    max_val_acc = va
-                if vl < min_val_loss:
-                    min_val_loss = vl
-                    self.save(model, vl, e)
         
             sched.step()
+            
         if (num_epochs-1) % val_freq != 0:
             vl, va = self.validate(model, objective)
             if va > max_val_acc:
