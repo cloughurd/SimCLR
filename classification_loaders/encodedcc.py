@@ -44,7 +44,10 @@ class CompCars(Dataset):
             i = self.images[idx]
             x = self.encodings[idx]
             model = int(i.split('/')[1])
-            label = self.labels[model] - 1
+            if self.label_type == 'type':
+                label = self.labels[model] - 1
+            elif self.label_type == 'door_number':
+                label = self.labels[model] - 2
         else:
             i = self.images[idx]
             x = self.encodings[idx]
