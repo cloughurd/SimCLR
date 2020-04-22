@@ -19,24 +19,40 @@ class CompCars(Dataset):
                 self.images.append(line.strip())
         attr_file = os.path.join(data_root, 'attributes.txt')
         self.attributes = pd.read_csv(attr_file, sep=' ', index_col=0)
+        self.attr_label = False
+        if label_type in self.attributes:
+            self.attr_label = True
+            self.attributes = self.attributes[self.attributes[label_type] != 0]
+            self.labels = self.attributes[label_type].to_dict()
+            self.trimmed = []
+            for idx in range(len(self.images)):
+                i = self.images[idx]
+                model = int(i.split('/')[1])
+                if model in self.labels:
+                    self.trimmed.append(idx)
         self.encodings = torch.load(encodings_loc)
 
     def __len__(self):
-        return len(self.images)
+        if self.attr_label:
+            return len(self.trimmed)
+        else:
+            return len(self.images)
         
     def __getitem__(self, idx):
-        i = self.images[idx]
-        encoded = self.encodings[idx]
-        
-        if self.label_type == 'make':
-            label = int(i.split('/')[0]) - 1
-        elif self.label_type == 'model':
-            label = int(i.split('/')[1]) - 1
-        elif self.label_type in self.attributes:
+        if self.attr_label:
+            idx = self.trimmed[idx]
+            i = self.images[idx]
+            x = self.encodings[idx]
             model = int(i.split('/')[1])
-            row = self.attributes.loc[model]
-            label = row[self.label_type]
+            label = self.labels[model] - 1
         else:
-            label = -1
+            i = self.images[idx]
+            x = self.encodings[idx]
+            if self.label_type == 'make':
+                label = int(i.split('/')[0]) - 1
+            elif self.label_type == 'model':
+                label = int(i.split('/')[1]) - 1
+            else:
+                label = -1
 
-        return encoded, torch.LongTensor([label])
+        return x, torch.LongTensor([label])
